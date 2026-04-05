@@ -1,0 +1,32 @@
+2026-04-05 17:57:23,016 - INFO - Test log
+2026-04-05 17:59:47,100 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5010
+ * Running on http://192.168.68.108:5010
+2026-04-05 17:59:47,100 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-05 17:59:47,102 - INFO -  * Restarting with stat
+2026-04-05 17:59:51,348 - WARNING -  * Debugger is active!
+2026-04-05 17:59:51,350 - INFO -  * Debugger PIN: 314-603-749
+2026-04-05 17:59:51,714 - INFO - 127.0.0.1 - - [05/Apr/2026 17:59:51] "GET /health HTTP/1.1" 200 -
+2026-04-05 17:59:55,872 - INFO - ********************Request start********************
+Model: Home-0.0.1 | Messages: 1 | Data: {'model': 'Home-0.0.1', 'messages': [{'role': 'user', 'content': 'hi'}]}
+********************Request end********************
+2026-04-05 17:59:56,413 - INFO - AFC is enabled with max remote calls: 10.
+2026-04-05 17:59:58,539 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent "HTTP/1.1 200 OK"
+2026-04-05 17:59:58,541 - INFO - ********************Chat success start********************
+Model: gemma-4-31b-it | Result type: AIMessage | Content length: 212
+Response: [Thinking]: The user said "hi".
+This is a standard greeting.
+Respond with a friendly, welcoming greeting and offer assistance.
+
+*Plan:*
+1. Greet the user.
+2. Ask how I can help.Hi there! How can I help you today?
+********************Chat success end********************
+2026-04-05 17:59:58,550 - INFO - 127.0.0.1 - - [05/Apr/2026 17:59:58] "POST /v1/chat/completions HTTP/1.1" 200 -
+2026-04-05 18:00:35,501 - INFO - ********************Request start********************
+Model: Home-0.0.1 | Messages: 1 | Data: {'model': 'Home-0.0.1', 'messages': [{'role': 'user', 'content': 'hello'}]}
+********************Request end********************
+2026-04-05 18:00:36,009 - INFO - AFC is enabled with max remote calls: 10.
+2026-04-05 18:00:36,683 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-3-1b-it:generateContent "HTTP/1.1 200 OK"
+2026-04-05 18:00:36,784 - INFO - 127.0.0.1 - - [05/Apr/2026 18:00:36] "POST /v1/chat/completions HTTP/1.1" 200 -

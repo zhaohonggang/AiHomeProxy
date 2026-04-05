@@ -4,16 +4,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 import config
 import logging
-from datetime import datetime
-
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log")
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, f"app_{datetime.now().strftime('%Y%m%d')}.log")
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -214,6 +207,13 @@ def chat_completions():
                     type: string
                   content:
                     type: string
+            tools:
+              type: array
+            tool_choice:
+              type: object
+            response_format:
+              type: object
+              description: JSON schema for structured output
     responses:
       200:
         description: Chat completion response
@@ -221,10 +221,11 @@ def chat_completions():
     data = request.json
     messages = data.get("messages", [])
     selected_model = data.get("model", "Home-0.0.1")
+    tools = data.get("tools", [])
+    tool_choice = data.get("tool_choice", None)
+    response_format = data.get("response_format", None)
     logger.info(
-        f"********************Request start********************\n"
-        f"Model: {selected_model} | Messages: {len(messages)} | Data: {data}\n"
-        f"********************Request end********************"
+        f"Request | Model: {selected_model} | Messages: {len(messages)} | Tools: {len(tools)} | ResponseFormat: {response_format is not None} | Data: {data}"
     )
 
     if not messages:
@@ -232,6 +233,7 @@ def chat_completions():
 
     try:
         from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+        from langchain_core.utils.function_calling import convert_to_openai_function
 
         langchain_messages = []
         for msg in messages:
@@ -263,6 +265,7 @@ def chat_completions():
         last_error = None
         tried_models = set()
         max_retries = 5
+        result = None
 
         while assistant_content is None and len(tried_models) < max_retries:
             if selected_model is None:
@@ -279,47 +282,60 @@ def chat_completions():
 
             tried_models.add(selected_model)
 
-            llm_temp = ChatGoogleGenerativeAI(
-                model=selected_model,
-                google_api_key=GOOGLE_API_KEY,
-                temperature=0.7,
-                convert_system_message_to_human=True,
-            )
             try:
-                result = llm_temp.invoke(langchain_messages, timeout=30)
-                raw_content = result.content
+                tool_bindings = {}
+                if tools:
+                    processed_tools = []
+                    for t in tools:
+                        if isinstance(t, dict) and "function" in t:
+                            func = t["function"]
+                            if "title" not in t:
+                                t["title"] = func.get("name", "function")
+                            processed_tools.append(t)
+                        else:
+                            processed_tools.append(t)
+                    tool_bindings["functions"] = [
+                        convert_to_openai_function(t) for t in processed_tools
+                    ]
+                    tool_bindings["model_kwargs"] = {
+                        "functions": tool_bindings.pop("functions")
+                    }
+                    if tool_choice:
+                        tool_bindings["function_call"] = (
+                            tool_choice.get("name")
+                            if isinstance(tool_choice, dict)
+                            else tool_choice
+                        )
 
-                if isinstance(raw_content, list):
-                    formatted_parts = []
-                    for item in raw_content:
-                        if isinstance(item, dict):
-                            item_type = item.get("type", "")
-                            if item_type == "text":
-                                formatted_parts.append(item.get("text", ""))
-                            elif item_type == "thinking":
-                                formatted_parts.append(
-                                    f"[Thinking]: {item.get('thinking', '')}"
-                                )
-                            else:
-                                formatted_parts.append(str(item))
-                    assistant_content = "".join(formatted_parts)
-                else:
-                    assistant_content = raw_content
+                if response_format:
+                    if "json_schema" in response_format or "schema" in response_format:
+                        tool_bindings["response_schema"] = response_format.get(
+                            "json_schema", response_format.get("schema")
+                        )
 
-                logger.info(
-                    f"********************Chat success start********************\n"
-                    f"Model: {selected_model} | "
-                    f"Result type: {type(result).__name__} | "
-                    f"Content length: {len(assistant_content) if assistant_content else 0}\n"
-                    f"Response: {assistant_content if assistant_content else 'empty'}\n"
-                    f"********************Chat success end********************"
+                llm_temp = ChatGoogleGenerativeAI(
+                    model=selected_model,
+                    google_api_key=GOOGLE_API_KEY,
+                    temperature=0.7,
+                    convert_system_message_to_human=True,
+                    **tool_bindings,
                 )
+                result = llm_temp.invoke(langchain_messages, timeout=30)
+                logger.info(f"LLM invoke done | Model: {selected_model}")
+
+                if isinstance(result.content, list):
+                    for item in result.content:
+                        if isinstance(item, dict) and item.get("type") == "text":
+                            item["text"] = item.get("text", "")
+                elif isinstance(result.content, str):
+                    result.content = result.content
+
+                assistant_content = result.content
+                break
             except Exception as e:
                 last_error = str(e)
                 logger.warning(
-                    f"********************Chat failed start********************\n"
-                    f"Model: {selected_model} | Error: {last_error}\n"
-                    f"********************Chat failed end********************"
+                    f"Chat failed | Model: {selected_model} | Error: {last_error}"
                 )
                 selected_model = get_google_model(skip_on_limit=True)
 
@@ -327,31 +343,74 @@ def chat_completions():
         assistant_content = f"Error: {str(e)}"
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if selected_model:
-        usage_count = get_usage_count_this_minute(selected_model, count_only=False)
-        model_rpm = get_model_rpm(selected_model)
-        metadata = f"[{current_time}] Model: {selected_model} | Usage: {usage_count}/{model_rpm} per minute"
-    else:
-        metadata = f"[{current_time}] Model: N/A"
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    message_content = assistant_content
+    if isinstance(message_content, list):
+        text_parts = []
+        for item in message_content:
+            if isinstance(item, dict):
+                if item.get("type") == "text":
+                    text_parts.append(item.get("text", ""))
+                elif item.get("type") == "thinking":
+                    continue
+                else:
+                    text_parts.append(str(item))
+        message_content = "".join(text_parts)
+    elif not isinstance(message_content, str):
+        message_content = str(message_content)
+
+    message = {
+        "role": "assistant",
+        "content": "message_content",
+    }
+
+    tool_calls_result = None
+    if result is not None:
+        tool_calls_result = getattr(result, "tool_calls", None)
+        if tool_calls_result and isinstance(tool_calls_result, list):
+            message["tool_calls"] = [
+                {
+                    "id": tc.get("id", f"call_{hash(str(tc)) % 1000000}"),
+                    "type": "function",
+                    "function": {
+                        "name": tc.get("name", tc.get("function", {}).get("name", "")),
+                        "arguments": json.dumps(
+                            tc.get(
+                                "arguments", tc.get("function", {}).get("arguments", {})
+                            )
+                        ),
+                    },
+                }
+                for tc in tool_calls_result
+            ]
+
+    usage_info = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    if result is not None:
+        usage_metadata = getattr(result, "usage_metadata", None)
+        if usage_metadata:
+            usage_info = {
+                "prompt_tokens": usage_metadata.get("input_tokens", 0),
+                "completion_tokens": usage_metadata.get("output_tokens", 0),
+                "total_tokens": usage_metadata.get("total_tokens", 0),
+            }
 
     response = {
-        "id": f"chatcmpl-{hash(str(messages)) % 1000000}",
+        "id": "chatcmpl-unique-test-001",
         "object": "chat.completion",
-        "created": 1700000000,
-        "model": MODEL_NAME,
+        "created": 1712300000,
+        "model": selected_model if selected_model else "N/A",
         "choices": [
             {
                 "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": f"{assistant_content}\n\n{metadata}",
-                },
-                "finish_reason": "stop",
+                "message": message,
+                "finish_reason": "tool_calls" if tool_calls_result else "stop",
             }
         ],
-        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        "usage": {"prompt_tokens": 10, "completion_tokens": 7, "total_tokens": 17},
     }
 
+    logger.info(f"Full response: {response}")
     return jsonify(response)
 
 
