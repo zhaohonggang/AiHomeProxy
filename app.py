@@ -3,6 +3,12 @@ from flasgger import Swagger
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 import config
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 try:
     import config_local
@@ -208,6 +214,9 @@ def chat_completions():
     data = request.json
     messages = data.get("messages", [])
     selected_model = data.get("model", "Home-0.0.1")
+    logger.info(
+        f"Request | Model: {selected_model} | Messages: {len(messages)} | Data: {data}"
+    )
 
     if not messages:
         return jsonify({"error": "messages is required"}), 400
@@ -264,8 +273,14 @@ def chat_completions():
             try:
                 result = llm_temp.invoke(langchain_messages, timeout=30)
                 assistant_content = result.content
+                logger.info(
+                    f"Chat success | Model: {selected_model} | Prompt: {messages[-1].get('content', '')[:100]} | Response: {assistant_content[:200]}"
+                )
             except Exception as e:
                 last_error = str(e)
+                logger.warning(
+                    f"Chat failed | Model: {selected_model} | Error: {last_error}"
+                )
                 selected_model = get_google_model(skip_on_limit=True)
 
     except Exception as e:
