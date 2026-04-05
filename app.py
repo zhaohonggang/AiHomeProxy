@@ -228,6 +228,12 @@ def chat_completions():
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
+
+            if isinstance(content, list) and len(content) > 0:
+                content = content[0].get("text", "")
+            elif not isinstance(content, str):
+                content = str(content)
+
             if not content:
                 continue
             if role == "user":
@@ -274,7 +280,10 @@ def chat_completions():
                 result = llm_temp.invoke(langchain_messages, timeout=30)
                 assistant_content = result.content
                 logger.info(
-                    f"Chat success | Model: {selected_model} | Prompt: {messages[-1].get('content', '')[:100]} | Response: {assistant_content[:200]}"
+                    f"Chat success | Model: {selected_model} | "
+                    f"Result type: {type(result).__name__} | "
+                    f"Content length: {len(assistant_content) if assistant_content else 0} | "
+                    f"Response: {assistant_content[:200] if assistant_content else 'empty'}"
                 )
             except Exception as e:
                 last_error = str(e)
