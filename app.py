@@ -298,10 +298,12 @@ def chat_completions():
                     assistant_content = raw_content
 
                 logger.info(
+                    f"*********************************************************\n"
                     f"Chat success | Model: {selected_model} | "
                     f"Result type: {type(result).__name__} | "
                     f"Content length: {len(assistant_content) if assistant_content else 0} | "
-                    f"Response: {assistant_content[:200] if assistant_content else 'empty'}"
+                    f"Response: {assistant_content if assistant_content else 'empty'}\n"
+                    f"*********************************************************"
                 )
             except Exception as e:
                 last_error = str(e)
