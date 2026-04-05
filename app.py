@@ -259,6 +259,14 @@ def chat_completions():
         if selected_model == "Home-0.0.1":
             selected_model = get_google_model()
 
+        system_instruction = None
+        other_messages = []
+        for msg in langchain_messages:
+            if hasattr(msg, "type") and msg.type == "system":
+                system_instruction = msg.content
+            else:
+                other_messages.append(msg)
+
         assistant_content = None
         last_error = None
         tried_models = set()
@@ -283,10 +291,10 @@ def chat_completions():
                 model=selected_model,
                 google_api_key=GOOGLE_API_KEY,
                 temperature=0.7,
-                convert_system_message_to_human=True,
+                system_instruction=system_instruction,
             )
             try:
-                result = llm_temp.invoke(langchain_messages, timeout=30)
+                result = llm_temp.invoke(other_messages, timeout=180)
                 raw_content = result.content
 
                 if isinstance(raw_content, list):

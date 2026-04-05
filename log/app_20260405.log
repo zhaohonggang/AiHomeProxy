@@ -30,3 +30,46 @@ Model: Home-0.0.1 | Messages: 1 | Data: {'model': 'Home-0.0.1', 'messages': [{'r
 2026-04-05 18:00:36,009 - INFO - AFC is enabled with max remote calls: 10.
 2026-04-05 18:00:36,683 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-3-1b-it:generateContent "HTTP/1.1 200 OK"
 2026-04-05 18:00:36,784 - INFO - 127.0.0.1 - - [05/Apr/2026 18:00:36] "POST /v1/chat/completions HTTP/1.1" 200 -
+2026-04-05 18:10:00,670 - INFO - AFC is enabled with max remote calls: 10.
+2026-04-05 18:10:01,659 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-3-4b-it:generateContent "HTTP/1.1 200 OK"
+2026-04-05 18:10:01,665 - INFO - 127.0.0.1 - - [05/Apr/2026 18:10:01] "POST /v1/chat/completions HTTP/1.1" 200 -
+2026-04-05 18:11:31,846 - INFO - AFC is enabled with max remote calls: 10.
+2026-04-05 18:11:46,752 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-3-12b-it:generateContent "HTTP/1.1 200 OK"
+2026-04-05 18:11:46,759 - INFO - 127.0.0.1 - - [05/Apr/2026 18:11:46] "POST /v1/chat/completions HTTP/1.1" 200 -
+2026-04-05 18:21:00,167 - INFO -  * Detected change in 'C:\\files\\git\\AiHomeProxy\\app.py', reloading
+2026-04-05 18:21:01,792 - INFO -  * Restarting with stat
+2026-04-05 18:21:07,574 - WARNING -  * Debugger is active!
+2026-04-05 18:21:07,577 - INFO -  * Debugger PIN: 314-603-749
+2026-04-05 18:21:20,948 - INFO - ********************Request start********************
+Model: Home-0.0.1 | Messages: 1 | Data: {'model': 'Home-0.0.1', 'messages': [{'role': 'user', 'content': 'hello'}]}
+********************Request end********************
+2026-04-05 18:21:20,949 - WARNING - Unexpected argument 'system_instruction' provided to ChatGoogleGenerativeAI.
+2026-04-05 18:21:21,549 - INFO - AFC is enabled with max remote calls: 10.
+2026-04-05 18:21:24,258 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent "HTTP/1.1 200 OK"
+2026-04-05 18:21:24,260 - INFO - ********************Chat success start********************
+Model: gemma-4-31b-it | Result type: AIMessage | Content length: 281
+Response: [Thinking]: The user said "hello".
+The user is initiating a conversation.
+
+    *   Acknowledge the greeting.
+    *   Offer assistance.
+    *   Maintain a polite and helpful tone.
+"Hello! How can I help you today?" or "Hi there! What's on your mind?"Hello! How can I help you today?
+********************Chat success end********************
+2026-04-05 18:21:24,273 - INFO - 127.0.0.1 - - [05/Apr/2026 18:21:24] "POST /v1/chat/completions HTTP/1.1" 200 -
+2026-04-05 18:24:52,410 - INFO -  * Detected change in 'C:\\files\\git\\AiHomeProxy\\app.py', reloading
+2026-04-05 18:24:53,891 - INFO -  * Restarting with stat
+2026-04-05 18:24:58,665 - WARNING -  * Debugger is active!
+2026-04-05 18:24:58,668 - INFO -  * Debugger PIN: 314-603-749
+2026-04-05 18:27:20,182 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5010
+ * Running on http://192.168.68.108:5010
+2026-04-05 18:27:20,183 - INFO - [33mPress CTRL+C to quit[0m
+2026-04-05 18:27:20,184 - INFO -  * Restarting with stat
+2026-04-05 18:27:25,204 - WARNING -  * Debugger is active!
+2026-04-05 18:27:25,206 - INFO -  * Debugger PIN: 314-603-749
+2026-04-05 18:27:57,886 - WARNING - Unexpected argument 'system_instruction' provided to ChatGoogleGenerativeAI.
+2026-04-05 18:27:58,546 - INFO - AFC is enabled with max remote calls: 10.
+2026-04-05 18:28:02,735 - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent "HTTP/1.1 200 OK"
+2026-04-05 18:28:02,750 - INFO - 127.0.0.1 - - [05/Apr/2026 18:28:02] "POST /v1/chat/completions HTTP/1.1" 200 -
