@@ -278,7 +278,25 @@ def chat_completions():
             )
             try:
                 result = llm_temp.invoke(langchain_messages, timeout=30)
-                assistant_content = result.content
+                raw_content = result.content
+
+                if isinstance(raw_content, list):
+                    formatted_parts = []
+                    for item in raw_content:
+                        if isinstance(item, dict):
+                            item_type = item.get("type", "")
+                            if item_type == "text":
+                                formatted_parts.append(item.get("text", ""))
+                            elif item_type == "thinking":
+                                formatted_parts.append(
+                                    f"[Thinking]: {item.get('thinking', '')}"
+                                )
+                            else:
+                                formatted_parts.append(str(item))
+                    assistant_content = "".join(formatted_parts)
+                else:
+                    assistant_content = raw_content
+
                 logger.info(
                     f"Chat success | Model: {selected_model} | "
                     f"Result type: {type(result).__name__} | "
