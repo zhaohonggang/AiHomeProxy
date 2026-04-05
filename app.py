@@ -16,7 +16,49 @@ swagger = Swagger(app)
 
 MODEL_NAME = "Home-0.0.1"
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", _config.GOOGLE_API_KEY)
-GOOGLE_MODEL = "gemma-3-1b-it"
+from datetime import datetime, timedelta
+import json
+
+
+def get_google_models():
+    with open("google_models.json", "r") as f:
+        return json.load(f)
+
+
+_current_model_index = 0
+_model_usage = {}
+
+
+def get_google_model(models=None):
+    global _current_model_index
+    if models is None:
+        models = get_google_models()
+    model_id = models[_current_model_index % len(models)]["id"]
+    _current_model_index += 1
+    return model_id
+
+
+def get_model_rpm(model_id):
+    models = get_google_models()
+    for m in models:
+        if m["id"] == model_id:
+            return m.get("rpm", 0)
+    return 0
+
+
+def get_usage_count_this_minute(model_id):
+    global _model_usage
+    now = datetime.now()
+    if model_id not in _model_usage:
+        _model_usage[model_id] = []
+    _model_usage[model_id] = [
+        ts for ts in _model_usage[model_id] if now - ts < timedelta(minutes=1)
+    ]
+    _model_usage[model_id].append(now)
+    return len(_model_usage[model_id])
+
+
+GOOGLE_MODEL = get_google_model()
 
 llm = ChatGoogleGenerativeAI(
     model=GOOGLE_MODEL,
@@ -150,6 +192,10 @@ def chat_completions():
     """
     data = request.json
     messages = data.get("messages", [])
+    selected_model = data.get("model", "Home-0.0.1")
+
+    if selected_model == "Home-0.0.1":
+        selected_model = get_google_model()
 
     if not messages:
         return jsonify({"error": "messages is required"}), 400
@@ -164,29 +210,45 @@ def chat_completions():
             if not content:
                 continue
             if role == "user":
+                content = content.split("\n\n[")[0]
                 langchain_messages.append(HumanMessage(content=content))
             elif role == "assistant":
+                content = content.split("\n\n[")[0]
                 langchain_messages.append(AIMessage(content=content))
             elif role == "system":
                 langchain_messages.append(SystemMessage(content=content))
             else:
                 langchain_messages.append(HumanMessage(content=content))
 
-        result = llm.invoke(langchain_messages)
+        llm_temp = ChatGoogleGenerativeAI(
+            model=selected_model,
+            google_api_key=GOOGLE_API_KEY,
+            temperature=0.7,
+            convert_system_message_to_human=True,
+        )
+        result = llm_temp.invoke(langchain_messages)
         assistant_content = result.content
 
     except Exception as e:
         assistant_content = f"Error: {str(e)}"
 
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    usage_count = get_usage_count_this_minute(selected_model)
+    model_rpm = get_model_rpm(selected_model)
+    metadata = f"[{current_time}] Model: {selected_model} | Usage: {usage_count}/{model_rpm} per minute"
+
     response = {
         "id": f"chatcmpl-{hash(str(messages)) % 1000000}",
         "object": "chat.completion",
         "created": 1700000000,
-        "model": MODEL_NAME,
+        "model": selected_model,
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": assistant_content},
+                "message": {
+                    "role": "assistant",
+                    "content": f"{assistant_content}\n\n[{current_time}] Model: {selected_model} | Usage: {usage_count}/{model_rpm} per minute",
+                },
                 "finish_reason": "stop",
             }
         ],

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "gemma-4-31b-it",
+    "name": "Gemma 4 31B",
+    "category": "Other models",
+    "rpm": 15,
+    "tpm": "Unlimited",
+    "rpd": "1.5K"
+  },
+  {
+    "id": "gemma-3-1b-it",
+    "name": "Gemma 3 1B",
+    "category": "Other models",
+    "rpm": 30,
+    "tpm": "15K",
+    "rpd": "14.4K"
+  },
+  {
+    "id": "gemma-3-4b-it",
+    "name": "Gemma 3 4B",
+    "category": "Other models",
+    "rpm": 30,
+    "tpm": "15K",
+    "rpd": "14.4K"
+  },
+  {
+    "id": "gemma-3-12b-it",
+    "name": "Gemma 3 12B",
+    "category": "Other models",
+    "rpm": 30,
+    "tpm": "15K",
+    "rpd": "14.4K"
+  },
+  {
+    "id": "gemma-3-27b-it",
+    "name": "Gemma 3 27B",
+    "category": "Other models",
+    "rpm": 30,
+    "tpm": "15K",
+    "rpd": "14.4K"
+  },
+  {
+    "id": "gemini-3-flash-preview",
+    "name": "Gemini 3 Flash",
+    "category": "Text-out models",
+    "rpm": 5,
+    "tpm": "250K",
+    "rpd": 20
+  },
+  {
+    "id": "gemini-3.1-flash-lite-preview",
+    "name": "Gemini 3.1 Flash Lite",
+    "category": "Text-out models",
+    "rpm": 15,
+    "tpm": "250K",
+    "rpd": 500
+  },
+  {
+    "id": "gemini-2.5-flash-lite",
+    "name": "Gemini 2.5 Flash Lite",
+    "category": "Text-out models",
+    "rpm": 10,
+    "tpm": "250K",
+    "rpd": 20
+  },
+  {
+    "id": "gemini-robotics-er-1.5-preview",
+    "name": "Gemini Robotics ER 1.5 Preview",
+    "category": "Other models",
+    "rpm": 10,
+    "tpm": "250K",
+    "rpd": 20
+  },
+  {
+    "id": "gemini-2.5-flash",
+    "name": "Gemini 2.5 Flash",
+    "category": "Text-out models",
+    "rpm": 5,
+    "tpm": "250K",
+    "rpd": 20
+  }
+]
