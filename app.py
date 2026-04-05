@@ -13,7 +13,7 @@ log_file = os.path.join(log_dir, f"app_{datetime.now().strftime('%Y%m%d')}.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
+    handlers=[logging.FileHandler(log_file, encoding="utf-8"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -261,7 +261,15 @@ def chat_completions():
 
         system_instruction = None
         other_messages = []
+        logger.info(
+            f"********************Langchain messages start********************\n{langchain_messages}\n********************Langchain messages end********************"
+        )
         for msg in langchain_messages:
+            msg_type = getattr(msg, "type", "unknown")
+            msg_content = getattr(msg, "content", "")
+            logger.info(
+                f"********************Message start********************\nType: {msg_type}\nContent: {msg_content}\n********************Message end********************"
+            )
             if hasattr(msg, "type") and msg.type == "system":
                 system_instruction = msg.content
             else:
@@ -291,7 +299,9 @@ def chat_completions():
                 model=selected_model,
                 google_api_key=GOOGLE_API_KEY,
                 temperature=0.7,
-                system_instruction=system_instruction,
+                model_kwargs={"system_instruction": system_instruction}
+                if system_instruction
+                else {},
             )
             try:
                 result = llm_temp.invoke(other_messages, timeout=180)
