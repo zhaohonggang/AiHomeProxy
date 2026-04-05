@@ -29,13 +29,27 @@ _current_model_index = 0
 _model_usage = {}
 
 
-def get_google_model(models=None):
+def get_google_model(models=None, skip_on_limit=True):
     global _current_model_index
     if models is None:
         models = get_google_models()
-    model_id = models[_current_model_index % len(models)]["id"]
-    _current_model_index += 1
-    return model_id
+
+    start_index = _current_model_index
+    attempts = 0
+
+    while attempts < len(models):
+        model_id = models[_current_model_index % len(models)]["id"]
+        rpm = get_model_rpm(model_id)
+        usage = get_usage_count_this_minute(model_id, count_only=True)
+
+        if not skip_on_limit or usage < rpm - 2:
+            _current_model_index += 1
+            return model_id
+
+        _current_model_index += 1
+        attempts += 1
+
+    return None
 
 
 def get_model_rpm(model_id):
@@ -46,7 +60,7 @@ def get_model_rpm(model_id):
     return 0
 
 
-def get_usage_count_this_minute(model_id):
+def get_usage_count_this_minute(model_id, count_only=False):
     global _model_usage
     now = datetime.now()
     if model_id not in _model_usage:
@@ -54,7 +68,8 @@ def get_usage_count_this_minute(model_id):
     _model_usage[model_id] = [
         ts for ts in _model_usage[model_id] if now - ts < timedelta(minutes=1)
     ]
-    _model_usage[model_id].append(now)
+    if not count_only:
+        _model_usage[model_id].append(now)
     return len(_model_usage[model_id])
 
 
@@ -194,9 +209,6 @@ def chat_completions():
     messages = data.get("messages", [])
     selected_model = data.get("model", "Home-0.0.1")
 
-    if selected_model == "Home-0.0.1":
-        selected_model = get_google_model()
-
     if not messages:
         return jsonify({"error": "messages is required"}), 400
 
@@ -220,34 +232,64 @@ def chat_completions():
             else:
                 langchain_messages.append(HumanMessage(content=content))
 
-        llm_temp = ChatGoogleGenerativeAI(
-            model=selected_model,
-            google_api_key=GOOGLE_API_KEY,
-            temperature=0.7,
-            convert_system_message_to_human=True,
-        )
-        result = llm_temp.invoke(langchain_messages)
-        assistant_content = result.content
+        if selected_model == "Home-0.0.1":
+            selected_model = get_google_model()
+
+        assistant_content = None
+        last_error = None
+        tried_models = set()
+        max_retries = 5
+
+        while assistant_content is None and len(tried_models) < max_retries:
+            if selected_model is None:
+                assistant_content = (
+                    "All models are at capacity. Please try again later."
+                )
+                break
+
+            if selected_model in tried_models:
+                selected_model = get_google_model(skip_on_limit=True)
+                if selected_model is None or selected_model in tried_models:
+                    assistant_content = "All models failed. Please try again later."
+                    break
+
+            tried_models.add(selected_model)
+
+            llm_temp = ChatGoogleGenerativeAI(
+                model=selected_model,
+                google_api_key=GOOGLE_API_KEY,
+                temperature=0.7,
+                convert_system_message_to_human=True,
+            )
+            try:
+                result = llm_temp.invoke(langchain_messages, timeout=30)
+                assistant_content = result.content
+            except Exception as e:
+                last_error = str(e)
+                selected_model = get_google_model(skip_on_limit=True)
 
     except Exception as e:
         assistant_content = f"Error: {str(e)}"
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    usage_count = get_usage_count_this_minute(selected_model)
-    model_rpm = get_model_rpm(selected_model)
-    metadata = f"[{current_time}] Model: {selected_model} | Usage: {usage_count}/{model_rpm} per minute"
+    if selected_model:
+        usage_count = get_usage_count_this_minute(selected_model, count_only=False)
+        model_rpm = get_model_rpm(selected_model)
+        metadata = f"[{current_time}] Model: {selected_model} | Usage: {usage_count}/{model_rpm} per minute"
+    else:
+        metadata = f"[{current_time}] Model: N/A"
 
     response = {
         "id": f"chatcmpl-{hash(str(messages)) % 1000000}",
         "object": "chat.completion",
         "created": 1700000000,
-        "model": selected_model,
+        "model": selected_model if selected_model else "N/A",
         "choices": [
             {
                 "index": 0,
                 "message": {
                     "role": "assistant",
-                    "content": f"{assistant_content}\n\n[{current_time}] Model: {selected_model} | Usage: {usage_count}/{model_rpm} per minute",
+                    "content": f"{assistant_content}\n\n{metadata}",
                 },
                 "finish_reason": "stop",
             }
